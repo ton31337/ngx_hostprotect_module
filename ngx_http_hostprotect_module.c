@@ -95,7 +95,7 @@ inline static void __attribute__((always_inline)) check_rbl(char *ip, int *statu
   if(*ip != '\0') {
     inet_pton(AF_INET, ip, &ipv4);
     hp = gethostbyaddr(&ipv4, sizeof(ipv4), AF_INET);
-    if(hp != NULL && *hp->h_name == '1')
+    if(hp != NULL && *hp->h_name++ == '1' && *hp->h_name == 0x2e)
       *status = 1;
   }
 }
