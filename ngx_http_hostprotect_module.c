@@ -211,8 +211,13 @@ static ngx_int_t ngx_http_hostprotect_handler(ngx_http_request_t *r)
   }
 
   ip_as_string = r->connection->addr_text;
-  hash = ngx_crc32_long(ip_as_string.data, ip_as_string.len);
 
+  ngx_str_t tmp;
+  tmp.data = ip_as_char;
+  tmp.len = strlen(ip_as_char);
+  ip_as_string = tmp;
+
+  hash = ngx_crc32_long(ip_as_string.data, ip_as_string.len);
   shpool = (ngx_slab_pool_t *) ngx_http_hostprotect_shm_zone->shm.addr;
   ngx_shmtx_lock(&shpool->mutex);
   found = (ngx_http_hostprotect_value_node_t *) ngx_str_rbtree_lookup(ngx_http_hostprotect_rbtree, &ip_as_string, hash);
