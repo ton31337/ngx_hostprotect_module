@@ -210,12 +210,8 @@ static ngx_int_t ngx_http_hostprotect_handler(ngx_http_request_t *r)
     return NGX_OK;
   }
 
-  ip_as_string = r->connection->addr_text;
-
-  ngx_str_t tmp;
-  tmp.data = ip_as_char;
-  tmp.len = strlen(ip_as_char);
-  ip_as_string = tmp;
+  ip_as_string.data = ip_as_char;
+  ip_as_string.len = strlen(ip_as_char);
 
   hash = ngx_crc32_long(ip_as_string.data, ip_as_string.len);
   shpool = (ngx_slab_pool_t *) ngx_http_hostprotect_shm_zone->shm.addr;
