@@ -375,7 +375,9 @@ static ngx_int_t ngx_http_hostprotect_handler(ngx_http_request_t *r)
       return NGX_OK;
     }
 
-  check_rbl(ip_as_char, resolver, &status);
+  if(*ip_as_char != '\0')
+    check_rbl(ip_as_char, resolver, &status);
+
   ngx_shmtx_lock(&shpool->mutex);
   ngx_http_hostprotect_delete_expired(shpool, ngx_http_hostprotect_rbtree->root, ngx_http_hostprotect_rbtree->sentinel);
   new_node = ngx_slab_alloc_locked(shpool, sizeof(ngx_http_hostprotect_value_node_t));
