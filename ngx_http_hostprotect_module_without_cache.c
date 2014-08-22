@@ -173,8 +173,8 @@ static void check_rbl(ngx_http_request_t *req, ngx_http_hostprotect_loc_conf_t *
   char *packet;
   fd_set readfds;
 
-  tv.tv_sec = 10;
-  tv.tv_usec = 500000;
+  tv.tv_sec = 0;
+  tv.tv_usec = 5000;
   FD_ZERO(&readfds);
 
   s = socket(PF_INET, SOCK_DGRAM|SOCK_NONBLOCK, IPPROTO_IP);
@@ -196,6 +196,8 @@ static void check_rbl(ngx_http_request_t *req, ngx_http_hostprotect_loc_conf_t *
   if(r) {
     if(FD_ISSET(s, &readfds)) {
       int bytes_recv = recv(s, buf, sizeof(buf), 0);
+      /* don't forget to close the socket, because you will reach socket limit by pid */
+      close(s);
       if(bytes_recv) {
         /* if debug */
         if(conf->debug)
