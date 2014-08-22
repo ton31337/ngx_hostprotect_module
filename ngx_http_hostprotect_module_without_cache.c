@@ -50,7 +50,7 @@ static void *ngx_http_hostprotect_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_http_hostprotect_init_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 void inline __attribute__((always_inline)) swap_bytes(unsigned char *, unsigned char *);
 char inline __attribute__((always_inline)) *change_to_dns_format(unsigned char *);
-static void check_rbl(char *, ngx_str_t, int *);
+static void check_rbl(ngx_http_request_t *, ngx_http_hostprotect_loc_conf_t *, char *, ngx_str_t, int *);
 
 static ngx_command_t ngx_http_hostprotect_commands[] = {
     { ngx_string("hostprotect"),
@@ -156,13 +156,12 @@ char inline __attribute__((always_inline)) *change_to_dns_format(unsigned char *
   return ip;
 }
 
-static void check_rbl(char *ip, ngx_str_t resolver, int *status)
+static void check_rbl(ngx_http_request_t *req, ngx_http_hostprotect_loc_conf_t *conf, char *ip, ngx_str_t resolver, int *status)
 {
   int s;
   int r;
   int j = 0;
   int p = 13;
-  int answer = 1;
   struct sockaddr_in addr;
   struct timeval tv;
   char buf[65536];
@@ -196,27 +195,33 @@ static void check_rbl(char *ip, ngx_str_t resolver, int *status)
   r = select(s+1, &readfds, NULL, NULL, &tv);
   if(r) {
     if(FD_ISSET(s, &readfds)) {
-      recv(s, buf, sizeof(buf), 0);
-      qname = (unsigned char*)&buf[sizeof(struct dns_header)];
-      reader = &buf[sizeof(struct dns_header) + (strlen(qname)+1) + sizeof(struct dns_question)];
+      int bytes_recv = recv(s, buf, sizeof(buf), 0);
+      if(bytes_recv) {
+        /* if debug */
+        if(conf->debug)
+          ngx_log_error(NGX_LOG_ERR, req->connection->log, 0, "%s: %d bytes received from server for %s", MODULE_NAME, bytes_recv, ip);
+
+        if(bytes_recv != 78)
+          goto err_go;
+
+        qname = (unsigned char*)&buf[sizeof(struct dns_header)];
+        reader = &buf[sizeof(struct dns_header) + (strlen(qname)+1) + sizeof(struct dns_question)];
+      }
     }
   }
 
   ans = (struct dns_answer *)reader;
-  if(ans == NULL) {
-    answer = 0;
-    goto err_go;
-  }
-  ans->data = (unsigned char *) malloc(ntohs(ans->rdlength));
-  for(j; j < ntohs(ans->rdlength); j++)
-    ans->data[j] = reader[j];
+  if(ans != NULL) {
+    ans->data = (unsigned char *) malloc(ntohs(ans->rdlength));
+    for(j; j < ntohs(ans->rdlength); j++)
+      ans->data[j] = reader[j];
 
-  if(ans->data[p++] == '1' && ans->data[++p] == 'b')
-    *status = 1;
+    if(ans->data[p++] == '1' && ans->data[++p] == 'b')
+      *status = 1;
+  }
 
   err_go:
-    if(!answer)
-      *status = 0;
+    return;
 
 }
 
@@ -240,20 +245,18 @@ static ngx_int_t ngx_http_hostprotect_handler(ngx_http_request_t *r)
     addr = &(((struct sockaddr_in *) (r->connection->sockaddr))->sin_addr.s_addr);
     inet_ntop(r->connection->sockaddr->sa_family, addr, ip_as_char, sizeof ip_as_char);
   } else {
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "IPv6 is not supported!");
     return NGX_OK;
   }
 
   if(*ip_as_char == '\0')
     return NGX_OK;
 
-  check_rbl(ip_as_char, resolver, &status);
-  /* if debug */
-  if(alcf->debug)
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "%s: checking for %s using resolver %s, status %d", MODULE_NAME, ip_as_char, resolver.data, status);
+   check_rbl(r, alcf, ip_as_char, resolver, &status);
+   /* if debug */
+   if(alcf->debug)
+     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "%s: checking for %s using resolver %s, request-length: %d, status %d", MODULE_NAME, ip_as_char, resolver.data, r->request_length, status);
 
   if(status) {
-
     /* if debug */
     if(alcf->debug)
       ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "%s: %s is blacklisted!", MODULE_NAME, ip_as_char);
