@@ -236,7 +236,7 @@ static ngx_int_t ngx_http_hostprotect_handler(ngx_http_request_t *r)
   ngx_http_hostprotect_loc_conf_t *alcf;
   ngx_str_t resolver;
   void *addr;
-  char ip_as_char[15];
+  char ip_as_char[16];
   int status = 0;
 
   memset(ip_as_char, 0, sizeof(ip_as_char));
