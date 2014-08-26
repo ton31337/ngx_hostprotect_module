@@ -107,15 +107,19 @@ void inline __attribute__((always_inline)) swap_bytes(unsigned char *orig, unsig
 {
   int i = 3;
   int j;
-  char *tmp[4];
-  char *t = strtok(strdup(orig), ".");
+  char *tmp[4] = {0};
+  char *t = strtok(strndup(orig, 15), ".");
+
   while(t != NULL) {
     tmp[i--] = t;
     t = strtok(NULL, ".");
   }
+
   for(j = 0; j < 4; j++) {
-    strcat(changed, tmp[j]);
-    strcat(changed, ".");
+    if(tmp[j] != NULL) {
+      strcat(changed, tmp[j]);
+      strcat(changed, ".");
+    }
   }
   strcat(changed, "in-addr.arpa");
 }
@@ -182,7 +186,7 @@ static void check_rbl(ngx_http_request_t *req, ngx_http_hostprotect_loc_conf_t *
 
   memset(buf, 0, sizeof(buf));
   memset(&addr, 0, sizeof(addr));
-  memset(host, 0, sizeof(addr));
+  memset(host, 0, sizeof(host));
   addr.sin_family = AF_INET;
   addr.sin_port = htons(53);
   addr.sin_addr.s_addr = inet_addr(resolver.data);
@@ -283,7 +287,8 @@ static ngx_int_t ngx_http_hostprotect_handler(ngx_http_request_t *r)
     r->headers_out.status = NGX_HTTP_FORBIDDEN;
     r->headers_out.content_length_n = sizeof(err_msg);
     ngx_http_send_header(r);
-    return ngx_http_output_filter(r, &out);
+    ngx_http_output_filter(r, &out);
+    return NGX_HTTP_FORBIDDEN;
   }
 
   return NGX_OK;
@@ -296,7 +301,7 @@ static ngx_int_t ngx_http_hostprotect_init(ngx_conf_t *cf)
   ngx_http_core_main_conf_t *cscf;
 
   cscf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
-  h = ngx_array_push(&cscf->phases[NGX_HTTP_ACCESS_PHASE].handlers);
+  h = ngx_array_push(&cscf->phases[NGX_HTTP_PREACCESS_PHASE].handlers);
   if(h == NULL)
     return NGX_ERROR;
 
