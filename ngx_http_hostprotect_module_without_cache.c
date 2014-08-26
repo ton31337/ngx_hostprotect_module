@@ -207,7 +207,7 @@ static void check_rbl(ngx_http_request_t *req, ngx_http_hostprotect_loc_conf_t *
         if(conf->debug)
           ngx_log_error(NGX_LOG_ERR, req->connection->log, 0, "%s: %d bytes received from server for %s", MODULE_NAME, bytes_recv, ip);
 
-        if(bytes_recv != 78)
+        if(bytes_recv > 80)
           goto err_go;
 
         qname = (unsigned char*)&buf[sizeof(struct dns_header)];
