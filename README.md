@@ -5,6 +5,6 @@ Nginx module to protect web service from malicious/bogus source IPs.
 Configuration
 ======================
 * `hostprotect (on|off)` - enables/disables hostprotect per location. Default off.
-* `hostprotect_expire (integer)` - sets expire time in seconds. Default 60.
-* `hostprotect_purge_ip (string)` - sets IP address allowed to purge cache. Default "1.1.1.1".
+* `hostprotect_debug (on|off)` - enables/disables debug mode. Default off.
+* `hostprotect_resolver (string)` - sets IP address of DNS resolver to use. Default "1.1.1.1".
 
