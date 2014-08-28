@@ -200,8 +200,6 @@ static void check_rbl(ngx_http_request_t *req, ngx_http_hostprotect_loc_conf_t *
   if(r) {
     if(FD_ISSET(s, &readfds)) {
       int bytes_recv = recv(s, buf, sizeof(buf), 0);
-      /* don't forget to close the socket, because you will reach socket limit by pid */
-      close(s);
       if(bytes_recv) {
         /* if debug */
         if(conf->debug)
@@ -227,6 +225,8 @@ static void check_rbl(ngx_http_request_t *req, ngx_http_hostprotect_loc_conf_t *
   }
 
   err_go:
+    /* don't forget to close the socket, because you will reach socket limit by pid */
+    close(s);
     return;
 
 }
