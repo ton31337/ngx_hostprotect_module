@@ -190,8 +190,9 @@ static void check_rbl(ngx_http_request_t *req, ngx_http_hostprotect_loc_conf_t *
 
   ans = (struct dns_answer *)reader;
   if(ans != NULL) {
-    ans->data = (unsigned char *) malloc(ntohs(ans->rdlength));
-    for(j; j < ntohs(ans->rdlength); j++)
+    int size_a = ntohs(ans->rdlength);
+    ans->data = (unsigned char *) malloc(size_a);
+    for(j; j < size_a; j++)
       ans->data[j] = reader[j];
 
     if(ans->data[p++] == '1' && ans->data[++p] == 'b')
